@@ -1,21 +1,22 @@
 package io.getblok.getblok_plasma
+package persistence
 
 import com.google.common.primitives.Ints
-import io.getblok.getblok_plasma.PlasmaStorage.{InternalNodePrefix, LeafPrefix}
+import io.getblok.getblok_plasma.persistence.VersionedPlasmaStorage.{InternalNodePrefix, LeafPrefix}
+import scorex.crypto.authds.avltree.batch._
 import scorex.crypto.authds.{ADDigest, ADKey, ADValue, Balance}
-import scorex.crypto.authds.avltree.batch.{BatchAVLProver, InternalProverNode, ProverLeaf, ProverNodes, VersionedAVLStorage}
-import scorex.crypto.hash
-import scorex.crypto.hash.{Blake2b256, CryptographicHash, Digest32}
+import scorex.crypto.hash.{Blake2b256, Digest32}
 
 import scala.util.Try
 
 /**
- * Storage for plasma that may be generated from a VersionedPlasmaMap
+ * Storage for plasma that may be generated from a VersionedPlasmaMap. Allows for implementation of
+ * some underlying PersistentBatchProver. Much of the code was recycled from implementation using LDB on Ergo.
  * Uses Digest32 for versions, equal values for KeySize and LabelSize, and Blake2b256 hashing
  * @param plasmaMap Versioned plasma map
  * @param plasmaParams size parameters for plasma
  */
-class PlasmaStorage(plasmaMap: VersionedPlasmaMap, plasmaParams: PlasmaParameters) extends VersionedAVLStorage[Digest32]{
+class VersionedPlasmaStorage(plasmaMap: VersionedPlasmaMap, plasmaParams: PlasmaParameters) extends VersionedAVLStorage[Digest32]{
   val keySize: Int = plasmaParams.keySize
   val valueSizeOpt: Option[Int] = plasmaParams.valueSizeOpt
   private val fixedSizeValueMode = valueSizeOpt.isDefined
@@ -33,7 +34,6 @@ class PlasmaStorage(plasmaMap: VersionedPlasmaMap, plasmaParams: PlasmaParameter
 
   override def rollbackVersions: Iterable[ADDigest] = ???
 
-  //TODO label or key???
   private def nodeKey(node: ProverNodes[Digest32]): Array[Byte] = node.label
 
   private def toBytes(node: ProverNodes[Digest32]): Array[Byte] = node match {
@@ -47,7 +47,7 @@ class PlasmaStorage(plasmaMap: VersionedPlasmaMap, plasmaParams: PlasmaParameter
   }
 }
 
-object PlasmaStorage {
+object VersionedPlasmaStorage {
   val InternalNodePrefix: Byte = 0: Byte
   val LeafPrefix: Byte = 1: Byte
 

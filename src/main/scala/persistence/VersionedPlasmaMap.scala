@@ -1,6 +1,7 @@
 package io.getblok.getblok_plasma
+package persistence
 
-import io.getblok.getblok_plasma.VersionedPlasmaMap.{Key, Value}
+import io.getblok.getblok_plasma.persistence.VersionedPlasmaMap.{Key, Value}
 import scorex.crypto.authds.{ADDigest, ADKey, ADValue}
 import supertagged.@@
 
@@ -39,6 +40,17 @@ object VersionedPlasmaMap {
     val byteMappings = hexMappings.map(vers => BigInt(vers._1).toByteArray ->
       ListMap(vers._2.map(maps => BigInt(maps._1).toByteArray -> BigInt(maps._2).toByteArray).toArray:_*))
     fromByteMappings(byteMappings)
+  }
+
+  /**
+   * Takes any convertible set of mappings and creates a VersionedPlasmaMap
+   */
+  def fromByteConversion[D, K, V](conversionMap: ListMap[D, ListMap[K, V]])
+                                 (implicit digestConvertible: ByteConversion[D], keyConvertible: ByteConversion[K],
+                                  valConvertible: ByteConversion[V]): VersionedPlasmaMap = {
+    val convertedMap = conversionMap.map(conv => digestConvertible.convertToBytes(conv._1)
+      -> ListMap(conv._2.map(kv => keyConvertible.convertToBytes(kv._1) -> valConvertible.convertToBytes(kv._2)).toSeq:_*))
+    fromByteMappings(convertedMap)
   }
 
 }
