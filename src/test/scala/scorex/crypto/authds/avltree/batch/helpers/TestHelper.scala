@@ -31,7 +31,7 @@ trait TestHelper extends FileHelper {
 
   def createSwayStore(): SwayDBVersionedStore = {
     val dir = getRandomTempDir
-    new SwayDBVersionedStore(dir.getPath)
+    new SwayDBVersionedStore(dir)
   }
 
   def createVersionedStorage(store: LDBVersionedStore): STORAGE =

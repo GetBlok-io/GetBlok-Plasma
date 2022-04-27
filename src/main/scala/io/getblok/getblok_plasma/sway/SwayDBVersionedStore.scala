@@ -19,31 +19,34 @@ import swaydb.serializers.Serializer
 import java.io.File
 import scala.collection.mutable.ArrayBuffer
 import scala.util.{Failure, Try}
-class SwayDBVersionedStore(dir: String){
+class SwayDBVersionedStore(dir: File){
   val logger = LoggerFactory.getLogger("SwayDBVersionedStore")
 
 
   private var multiMap: Try[MultiMap[VersionedDigest, PlasmaKey, PlasmaVal, Nothing, Try]] = _
 
-  def open() = multiMap = swaydb.persistent.MultiMap[VersionedDigest, PlasmaKey, PlasmaVal, Nothing, Try](dir = new File(dir).toPath)
+  def open() = multiMap = swaydb.persistent.MultiMap[VersionedDigest, PlasmaKey, PlasmaVal, Nothing, Try](dir = dir.toPath)
   def close() = {
     multiMap.map(m => m.close())
     multiMap = null
   }
 
 
-  def versions: Array[Try[MultiMap[VersionedDigest, PlasmaKey, PlasmaVal, Nothing, Try]]] =
-    multiMap.get.children.iterator[Try].toArray.sortBy(t => t.toOption.map(o => o.mapKey.versionNum))
-  def getVersion(digest: Array[Byte]): Option[Try[MultiMap[VersionedDigest, PlasmaKey, PlasmaVal, Nothing, Try]]] =
-    versions.find(d => d.get.mapKey.digest sameElements digest)
-  def lastVersion: Option[MultiMap[VersionedDigest, PlasmaKey, PlasmaVal, Nothing, Try]] = versions.lastOption.flatMap(t => t.toOption)
-  def firstVersion = versions.headOption.flatMap(t => t.toOption)
+  def versions: Option[Array[VersionedDigest]] =
+    Try(multiMap.get.children.iterator[Try].toArray.map(m => m.map(t => t.mapKey).get).sortBy(t => t.versionNum)).toOption
 
+  def getVersion(digest: Array[Byte]): Option[VersionedDigest] =
+    versions.flatMap(o => o.find(v => v.digest sameElements digest))
+
+  def lastVersion: Option[VersionedDigest] = versions.flatMap(o => o.lastOption)
+  def firstVersion: Option[VersionedDigest] = versions.flatMap(o => o.headOption)
+
+  def getAtVersion(v: VersionedDigest): Option[MultiMap[VersionedDigest, PlasmaKey, PlasmaVal, Nothing, Try]] = multiMap.get.getChild(v).toOption.flatten
 
   def insert(digest: Array[Byte], toInsert: Seq[(PlasmaKey, PlasmaVal)]): Try[Unit] = update(digest, Seq.empty, toInsert)
   def remove(digest: Array[Byte], toRemove: Seq[PlasmaKey]): Try[Unit] = update(digest, toRemove, Seq.empty )
-  def get(key: PlasmaKey) = lastVersion.get.get(key)
-  def apply(key: PlasmaKey) =  lastVersion.map(m => m.get(key)).getOrElse({
+  def get(key: PlasmaKey): Option[PlasmaVal] = lastVersion.flatMap(lv => getAtVersion(lv)).flatMap(m => m.get(key).toOption).flatten
+  def apply(key: PlasmaKey): PlasmaVal =  lastVersion.flatMap(m => getAtVersion(m)).map(o => o.get(key)).getOrElse({
     throw new NoSuchElementException()
   }).get.get
   /**
@@ -59,7 +62,7 @@ class SwayDBVersionedStore(dir: String){
       val lastDigestVers = lastVersion
       val nextVersion = {
         if(lastDigestVers.isDefined)
-          VersionedDigest(digest, lastDigestVers.get.mapKey.versionNum + 1)
+          VersionedDigest(digest, lastDigestVers.get.versionNum + 1)
         else
           VersionedDigest(digest, 0)
       }
@@ -70,8 +73,8 @@ class SwayDBVersionedStore(dir: String){
 
       // Load new version with values from last version
       if(lastDigestVers.isDefined) {
-        logger.info(s"Last Version: ${toHex(lastDigestVers.get.mapKey.digest)}")
-        val lastVersionPairs = multiMap.get.child(lastDigestVers.get.mapKey).get.stream
+        logger.info(s"Last Version: ${toHex(lastDigestVers.get.digest)}")
+        val lastVersionPairs = multiMap.get.child(lastDigestVers.get).get.stream
         lastVersionPairs.foreach(p => logger.info(s"Adding keyVal from last version (${toHex(p._1.key)} -> ${toHex(p._2.value)})"))
         nextChild.get.put(lastVersionPairs)
       }
@@ -84,7 +87,6 @@ class SwayDBVersionedStore(dir: String){
 
       if (added.nonEmpty) {
           added.foreach {
-
             a =>
               logger.info(s"Now adding keyVal (${toHex(a._1.key)} -> ${toHex(a._2.value)}) with lengths (${a._1.key.length} -> ${a._2.value.length}")
               nextChild.get.put(a)
@@ -101,16 +103,17 @@ class SwayDBVersionedStore(dir: String){
   def toHex(arr: Array[Byte]) = BigInt(arr).toString(16)
   def rollbackTo(digest: Array[Byte]): Try[Unit] = {
     Try {
-      val rollbackVersion = getVersion(digest).get.get
-      logger.info(s"Rolling back to digest ${toHex(rollbackVersion.mapKey.digest)}")
+      val rollbackVersion = getVersion(digest).get
+      logger.info(s"Rolling back to digest ${toHex(rollbackVersion.digest)}")
 
-      val versionsToRemove = versions.filter(v => v.get.mapKey.versionNum > rollbackVersion.mapKey.versionNum)
-      rollbackVersion.stream.foreach(cv => logger.info(s"Found keyVal (${toHex(cv._1.key)} -> ${toHex(cv._2.value)}) with lengths (${cv._1.key.length} -> ${cv._2.value.length}"))
+      val versionsToRemove = versions.get.filter(v => v.versionNum > rollbackVersion.versionNum)
+      val rolledBackKVs = getAtVersion(rollbackVersion).get.stream
+      rolledBackKVs.foreach(cv => logger.info(s"Found keyVal (${toHex(cv._1.key)} -> ${toHex(cv._2.value)}) with lengths (${cv._1.key.length} -> ${cv._2.value.length}"))
 
       versionsToRemove.foreach{
         v =>
-        logger.info(s"Now removing child version ${toHex(v.get.mapKey.digest)} with version number ${v.get.mapKey.versionNum} ")
-        multiMap.get.removeChild(v.get.mapKey)
+        logger.info(s"Now removing child version ${toHex(v.digest)} with version number ${v.versionNum} ")
+        multiMap.get.removeChild(v)
       }
     }
 

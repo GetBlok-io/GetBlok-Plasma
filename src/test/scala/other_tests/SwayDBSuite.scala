@@ -12,12 +12,14 @@ import scorex.crypto.authds.avltree.batch.serialization.BatchAVLProverSerializer
 import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, PersistentBatchAVLProver, VersionedPlasmaStorage}
 import scorex.crypto.hash.{Blake2b256, Digest32}
 import supertagged.@@
+
+import java.io.File
 class SwayDBSuite extends AnyFunSuite{
   val logger: Logger = LoggerFactory.getLogger("PlasmaSuite")
-  val swayDBVersionedStore = new SwayDBVersionedStore("C:\\Users\\Kirat\\IdeaProjects\\GetBlok-Plasma\\sway")
+  val swayDBVersionedStore = new SwayDBVersionedStore(new File("C:\\Users\\Kirat\\IdeaProjects\\GetBlok-Plasma\\sway"))
   val versionedPlasma = new VersionedPlasmaStorage(swayDBVersionedStore, PlasmaParameters(32, None))
 
-  val avlProver = new BatchAVLProver[Digest32, Blake2b256.type](32, None)
+  val avlProver = new BatchAVLProver[Digest32, Blake2b256.type](32 , None)
   val persistentBatchAVLProver = PersistentBatchAVLProver.create(avlProver, versionedPlasma)
 
   if(persistentBatchAVLProver.isSuccess){

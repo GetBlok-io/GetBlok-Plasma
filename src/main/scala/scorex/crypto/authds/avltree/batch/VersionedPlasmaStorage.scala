@@ -44,8 +44,8 @@ class VersionedPlasmaStorage(store: SwayDBVersionedStore, plasmaParams: PlasmaPa
     Try {
       store.rollbackTo(version)
       logger.info(s"TopNodeKey: ${toHex(TopNodeKey)}")
-      val top = VersionedPlasmaStorage.fetch(ADKey @@ store.get(PlasmaKey(TopNodeKey)).get.get.value)(store, plasmaParams)
-      val topHeight = Ints.fromByteArray(store.get(PlasmaKey(TopNodeHeight)).get.get.value)
+      val top = VersionedPlasmaStorage.fetch(ADKey @@ store.get(PlasmaKey(TopNodeKey)).get.value)(store, plasmaParams)
+      val topHeight = Ints.fromByteArray(store.get(PlasmaKey(TopNodeHeight)).get.value)
 
       top -> topHeight
     }.recoverWith { case e =>
@@ -54,7 +54,7 @@ class VersionedPlasmaStorage(store: SwayDBVersionedStore, plasmaParams: PlasmaPa
     }
   }
 
-  override def version: Option[ADDigest] = store.lastVersion.map(v => ADDigest @@ v.mapKey.digest)
+  override def version: Option[ADDigest] = store.lastVersion.map(v => ADDigest @@ v.digest)
 
   override def rollbackVersions: Iterable[ADDigest] = Seq(version.get).reverse
 
@@ -102,34 +102,33 @@ object VersionedPlasmaStorage {
     val labelSize = plasmaParams.keySize
     val valueSizeOpt = plasmaParams.valueSizeOpt
     logger.info(s"Searching for key ${toHex(key)} with length ${key.length}")
-    val bytesOpt = store.get(PlasmaKey(key)).get
-      val bytes = bytesOpt.get.value
-      bytes.head match {
-        case InternalNodePrefix =>
-          val balance = Balance @@ bytes.slice(1, 2).head
-          val key = ADKey @@ bytes.slice(2, 2 + keySize)
-          val leftKey = ADKey @@ bytes.slice(2 + keySize, 2 + keySize + labelSize)
-          val rightKey = ADKey @@ bytes.slice(2 + keySize + labelSize, 2 + keySize + (2 * labelSize))
+    val bytes = store(PlasmaKey(key)).value
+    bytes.head match {
+      case InternalNodePrefix =>
+        val balance = Balance @@ bytes.slice(1, 2).head
+        val key = ADKey @@ bytes.slice(2, 2 + keySize)
+        val leftKey = ADKey @@ bytes.slice(2 + keySize, 2 + keySize + labelSize)
+        val rightKey = ADKey @@ bytes.slice(2 + keySize + labelSize, 2 + keySize + (2 * labelSize))
 
-          val n = new PlasmaProxyInternalProverNode(key, leftKey, rightKey, balance)
-          n.isNew = false
-          n
-        case LeafPrefix =>
-          val key = ADKey @@ bytes.slice(1, 1 + keySize)
-          val (value, nextLeafKey) = if (plasmaParams.valueSizeOpt.isDefined) {
-            val valueSize = plasmaParams.valueSizeOpt.get
-            val value = ADValue @@ bytes.slice(1 + keySize, 1 + keySize + valueSize)
-            val nextLeafKey = ADKey @@ bytes.slice(1 + keySize + valueSize, 1 + (2 * keySize) + valueSize)
-            value -> nextLeafKey
-          } else {
-            val valueSize = Ints.fromByteArray(bytes.slice(1 + keySize, 1 + keySize + 4))
-            val value = ADValue @@ bytes.slice(1 + keySize + 4, 1 + keySize + 4 + valueSize)
-            val nextLeafKey = ADKey @@ bytes.slice(1 + keySize + 4 + valueSize, 1 + (2 * keySize) + 4 + valueSize)
-            value -> nextLeafKey
-          }
-          val l = new ProverLeaf[Digest32](key, value, nextLeafKey)
-          l.isNew = false
-          l
-      }
+        val n = new PlasmaProxyInternalProverNode(key, leftKey, rightKey, balance)
+        n.isNew = false
+        n
+      case LeafPrefix =>
+        val key = ADKey @@ bytes.slice(1, 1 + keySize)
+        val (value, nextLeafKey) = if (plasmaParams.valueSizeOpt.isDefined) {
+          val valueSize = plasmaParams.valueSizeOpt.get
+          val value = ADValue @@ bytes.slice(1 + keySize, 1 + keySize + valueSize)
+          val nextLeafKey = ADKey @@ bytes.slice(1 + keySize + valueSize, 1 + (2 * keySize) + valueSize)
+          value -> nextLeafKey
+        } else {
+          val valueSize = Ints.fromByteArray(bytes.slice(1 + keySize, 1 + keySize + 4))
+          val value = ADValue @@ bytes.slice(1 + keySize + 4, 1 + keySize + 4 + valueSize)
+          val nextLeafKey = ADKey @@ bytes.slice(1 + keySize + 4 + valueSize, 1 + (2 * keySize) + 4 + valueSize)
+          value -> nextLeafKey
+        }
+        val l = new ProverLeaf[Digest32](key, value, nextLeafKey)
+        l.isNew = false
+        l
+    }
   }
 }

@@ -17,7 +17,7 @@ class SwayAVLPersistentProverSpec extends AnyPropSpec with Matchers {
   type HF = Blake2b256.type
   implicit val hf: HF = Blake2b256
 
-  val stateStore = new SwayDBVersionedStore(getRandomTempDir.getPath)
+  val stateStore = new SwayDBVersionedStore(getRandomTempDir)
 
   private lazy val plasmaParams =
     PlasmaParameters(32, None)
@@ -38,7 +38,7 @@ class SwayAVLPersistentProverSpec extends AnyPropSpec with Matchers {
     Try {
       if (!(persistentProver.digest.sameElements(rollBackTo) &&
         storage.version.get.sameElements(rollBackTo) &&
-        stateStore.lastVersion.get.mapKey.digest.sameElements(rollBackTo))) Failure(new Error("Bad state version."))
+        stateStore.lastVersion.get.digest.sameElements(rollBackTo))) Failure(new Error("Bad state version."))
 
       mods.foldLeft[Try[Option[ADValue]]](Success(None)) { case (t, m) =>
         t.flatMap(_ => {
