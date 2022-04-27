@@ -1,7 +1,7 @@
-package io.getblok.getblok_plasma
 package other_tests
 
 import com.google.common.primitives.Longs
+import io.getblok.getblok_plasma
 import io.getblok.getblok_plasma.other_tests.{buildUserBox, randomLongKey}
 import org.bouncycastle.crypto.digests.SkeinEngine.Parameter
 import org.ergoplatform.appkit.{ErgoValue, Parameters}
@@ -24,6 +24,7 @@ class PlasmaSuite extends AnyFunSuite{
 
   val logger: Logger = LoggerFactory.getLogger("PlasmaSuite")
   val longNumBytes: Int = Longs.toByteArray(0).length
+  logger.info(s"Long num Bytes: ${longNumBytes}")
   val initLongKey = Longs.toByteArray(0)
   val secondLongKey = Longs.toByteArray(Parameters.OneErg)
   val keyLength = 4
@@ -81,6 +82,7 @@ class PlasmaSuite extends AnyFunSuite{
 
 
     def fromProver(batchAVLProver: BatchAVLProver[Digest32, Blake2b256.type ]): Plasma = {
+
       Plasma(batchAVLProver.digest, batchAVLProver.keyLength, batchAVLProver.valueLengthOpt, Some(batchAVLProver))
     }
 //    def fromVerifier(batchAVLVerifier: BatchAVLVerifier[Digest32, Blake2b256.type ], proof: SerializedAdProof): Plasma = {
@@ -93,6 +95,7 @@ class PlasmaSuite extends AnyFunSuite{
     assert(plasma.lastProver.isDefined)
 
     val prover = plasma.lastProver.get
+    logger.info(s"Current prover: ${prover.toString()}")
     val box = buildUserBox(Parameters.OneErg)
     val valueAdded = ADValue @@ box.getId.getBytes
     val nextKey = randomLongKey
@@ -102,6 +105,7 @@ class PlasmaSuite extends AnyFunSuite{
       logger.info("Successfully added key!")
       keysAdded = keysAdded ++ Array(nextKey)
     }
+    logger.info(s"Current prover: ${prover.toString()}")
     Plasma.fromProver(prover)
   }
 
@@ -140,7 +144,7 @@ class PlasmaSuite extends AnyFunSuite{
     logger.info("initKey: " + toHexString(secondLongKey))
     val avlProver = new BatchAVLProver[Digest32, Blake2b256.type](longNumBytes, None)
     logger.info("Initial empty digest: " + toHexString(avlProver.digest))
-
+    logger.info(s"Digest length: ${avlProver.digest.length}")
     val plasma = Plasma.fromProver(avlProver)
     logger.info(plasma.serializeOffChain.toString)
     plasma
