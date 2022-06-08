@@ -1,8 +1,8 @@
 package scorex.crypto.authds.avltree.batch
 
 import com.google.common.primitives.Longs
-import io.getblok.getblok_plasma.sway.SwayDBVersionedStore
-import io.getblok.getblok_plasma.sway.Types.{PlasmaKey, PlasmaVal, VersionedDigest}
+import io.getblok.getblok_plasma.persistence.SwayDBVersionedStore
+import io.getblok.getblok_plasma.persistence.Types.{PlasmaKey, PlasmaVal, VersionedDigest}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.propspec.AnyPropSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks

@@ -2,9 +2,9 @@ package other_tests
 
 import com.google.common.primitives.Longs
 import io.getblok.getblok_plasma
-import io.getblok.getblok_plasma.other_tests.{buildUserBox, randomLongKey}
+import io.getblok.getblok_plasma.other_tests.{buildUserBox, ergoClient, randomLongKey}
 import org.bouncycastle.crypto.digests.SkeinEngine.Parameter
-import org.ergoplatform.appkit.{ErgoValue, Parameters}
+import org.ergoplatform.appkit.{ErgoValue, Parameters, SecretString}
 import org.ergoplatform.settings.ErgoAlgos.HF
 import scorex.crypto.hash.{Blake2b256, Digest, Digest32}
 import org.scalatest.funsuite.AnyFunSuite
@@ -13,6 +13,8 @@ import scorex.crypto.authds.avltree.batch.serialization.BatchAVLProverSerializer
 import scorex.crypto.authds.{ADDigest, ADKey, ADValue, SerializedAdProof}
 import scorex.crypto.authds.avltree.batch.{BatchAVLProver, BatchAVLVerifier, Insert, PersistentBatchAVLProver, VersionedAVLStorage}
 import sigmastate.Values.AvlTreeConstant
+import sigmastate.basics.DLogProtocol
+import sigmastate.interpreter.CryptoConstants
 import sigmastate.serialization.{CreateAvlTreeSerializer, ValueSerializer}
 import sigmastate.{AvlTreeData, AvlTreeFlags}
 import special.sigma.AvlTree
@@ -182,5 +184,17 @@ class PlasmaSuite extends AnyFunSuite{
 
   test("Create AVL Tree") {
     createAVLTree
+  }
+
+
+  test("Wallet") {
+    ergoClient.execute{
+      ctx =>
+        val prover1 = ctx.newProverBuilder().withMnemonic(SecretString.create("hello"), SecretString.create("")).build()
+        val prover2 = ctx.newProverBuilder().withMnemonic(SecretString.create("hello2"), SecretString.create("")).build()
+        logger.info(prover1.getAddress.toString)
+        logger.info(prover2.getAddress.toString)
+
+    }
   }
 }

@@ -31,6 +31,19 @@ package object other_tests {
     }
   }
 
+  def buildAVLBox(value: Long): InputBox = {
+    ergoClient.execute{
+      ctx =>
+        val inputBox = ctx.newTxBuilder().outBoxBuilder()
+          .value(value)
+          .contract(new ErgoTreeContract(creatorAddress.getErgoAddress.script, NetworkType.MAINNET))
+          .build()
+          .convertToInputWith("ce552663312afc2379a91f803c93e2b10b424f176fbc930055c10def2fd88a5d", 0)
+        sigma.util.Extensions
+        return inputBox
+    }
+  }
+
 
   def getInputBoxes: Array[InputBox] = Array(buildUserBox(Parameters.OneErg * 122))
 

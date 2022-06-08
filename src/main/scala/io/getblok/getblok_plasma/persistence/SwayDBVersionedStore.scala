@@ -1,23 +1,12 @@
-package io.getblok.getblok_plasma.sway
-import boopickle.Default.generatePickler
-import com.google.common.primitives.Longs
-import io.getblok.getblok_plasma.sway.Serializers.{DigestSerializer, KeySerializer, ValSerializer}
-import io.getblok.getblok_plasma.sway.Types.{PlasmaKey, PlasmaVal, VersionedDigest}
+package io.getblok.getblok_plasma.persistence
+
+import io.getblok.getblok_plasma.persistence.Serializers._
+import io.getblok.getblok_plasma.persistence.Types.{PlasmaKey, PlasmaVal, VersionedDigest}
 import org.slf4j.LoggerFactory
-import scorex.crypto.authds.{ADKey, ADValue}
-import scorex.crypto.hash.Digest32
-import supertagged.@@
 import swaydb.Bag.tryBag
-import swaydb.PureFunctionScala.{OnKeyValue, OnValue}
-import swaydb.core.map.counter.PersistentCounterMapCache
-import swaydb.data.Functions
-import swaydb.{Apply, Glass, MultiMap, PureFunction}
-import swaydb.persistent._
-import swaydb.serializers.Default.{ByteArraySerializer, IntSerializer}
-import swaydb.serializers.Serializer
+import swaydb.MultiMap
 
 import java.io.File
-import scala.collection.mutable.ArrayBuffer
 import scala.util.{Failure, Try}
 class SwayDBVersionedStore(dir: File){
   val logger = LoggerFactory.getLogger("SwayDBVersionedStore")

@@ -4,7 +4,7 @@ import io.getblok.getblok_plasma.PlasmaParameters
 import io.getblok.getblok_plasma.other_tests.{buildUserBox, randomLongKey}
 import scorex.crypto.authds.ADKey
 import supertagged.@@
-//import io.getblok.getblok_plasma.sway.SwayDBVersionedStore
+//import io.getblok.getblok_plasma.persistence.SwayDBVersionedStore
 import org.scalatest.funsuite.AnyFunSuite
 import org.slf4j.{Logger, LoggerFactory}
 import scorex.crypto.authds.ADValue

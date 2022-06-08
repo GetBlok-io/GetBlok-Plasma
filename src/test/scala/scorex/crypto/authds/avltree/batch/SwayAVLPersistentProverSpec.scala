@@ -1,7 +1,7 @@
 package scorex.crypto.authds.avltree.batch
 
 import io.getblok.getblok_plasma.PlasmaParameters
-import io.getblok.getblok_plasma.sway.SwayDBVersionedStore
+import io.getblok.getblok_plasma.persistence.SwayDBVersionedStore
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.propspec.AnyPropSpec
 import scorex.crypto.authds.avltree.batch.benchmark.LDBVersionedStoreBenchmark.getRandomTempDir
@@ -22,7 +22,7 @@ class SwayAVLPersistentProverSpec extends AnyPropSpec with Matchers {
   private lazy val plasmaParams =
     PlasmaParameters(32, None)
 
-  protected lazy val storage = new VersionedPlasmaStorage(stateStore, plasmaParams)
+  protected lazy val storage = new VersionedSwayAVLStorage(stateStore, plasmaParams)
 
   protected lazy val persistentProver: PersistentBatchAVLProver[Digest32, HF] =
     PersistentBatchAVLProver.create(

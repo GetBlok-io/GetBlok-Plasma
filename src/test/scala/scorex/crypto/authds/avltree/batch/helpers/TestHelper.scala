@@ -1,6 +1,6 @@
 package scorex.crypto.authds.avltree.batch.helpers
 
-import io.getblok.getblok_plasma.sway.SwayDBVersionedStore
+import io.getblok.getblok_plasma.persistence.SwayDBVersionedStore
 import scorex.crypto.authds.avltree.batch._
 import scorex.crypto.authds.{ADDigest, SerializedAdProof}
 import scorex.util.encode.Base58

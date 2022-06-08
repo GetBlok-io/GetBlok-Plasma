@@ -2,11 +2,10 @@ package scorex.crypto.authds.avltree.batch
 
 import com.google.common.primitives.Ints
 import io.getblok.getblok_plasma.PlasmaParameters
-import io.getblok.getblok_plasma.persistence.PlasmaProxyInternalProverNode
-import io.getblok.getblok_plasma.sway.SwayDBVersionedStore
-import io.getblok.getblok_plasma.sway.Types.{PlasmaKey, PlasmaVal}
+import io.getblok.getblok_plasma.persistence.{PlasmaProxyInternalProverNode, SwayDBVersionedStore}
+import io.getblok.getblok_plasma.persistence.Types.{PlasmaKey, PlasmaVal}
 import org.slf4j.{Logger, LoggerFactory}
-import scorex.crypto.authds.avltree.batch.VersionedPlasmaStorage.{InternalNodePrefix, LeafPrefix, toHex}
+import scorex.crypto.authds.avltree.batch.VersionedSwayAVLStorage.{InternalNodePrefix, LeafPrefix, toHex}
 import scorex.crypto.authds.avltree.batch._
 import scorex.crypto.authds.{ADDigest, ADKey, ADValue, Balance}
 import scorex.crypto.hash.{Blake2b256, Digest32}
@@ -19,10 +18,10 @@ import scala.util.{Failure, Try}
  * Storage for plasma that may be generated from a VersionedPlasmaMap. Allows for implementation of
  * some underlying PersistentBatchProver. Much of the code was recycled from implementation using LDB on Ergo.
  * Uses Digest32 for versions, equal values for KeySize and LabelSize, and Blake2b256 hashing
- * @param plasmaMap Versioned plasma map
+ * @param store Versioned storage using SwayDB
  * @param plasmaParams size parameters for plasma
  */
-class VersionedPlasmaStorage(store: SwayDBVersionedStore, plasmaParams: PlasmaParameters) extends VersionedAVLStorage[Digest32]{
+class VersionedSwayAVLStorage(store: SwayDBVersionedStore, plasmaParams: PlasmaParameters) extends VersionedAVLStorage[Digest32]{
   val keySize: Int = plasmaParams.keySize
   val valueSizeOpt: Option[Int] = plasmaParams.valueSizeOpt
   private val fixedSizeValueMode = valueSizeOpt.isDefined
@@ -44,7 +43,7 @@ class VersionedPlasmaStorage(store: SwayDBVersionedStore, plasmaParams: PlasmaPa
     Try {
       store.rollbackTo(version)
       logger.info(s"TopNodeKey: ${toHex(TopNodeKey)}")
-      val top = VersionedPlasmaStorage.fetch(ADKey @@ store.get(PlasmaKey(TopNodeKey)).get.value)(store, plasmaParams)
+      val top = VersionedSwayAVLStorage.fetch(ADKey @@ store.get(PlasmaKey(TopNodeKey)).get.value)(store, plasmaParams)
       val topHeight = Ints.fromByteArray(store.get(PlasmaKey(TopNodeHeight)).get.value)
 
       top -> topHeight
@@ -87,7 +86,7 @@ class VersionedPlasmaStorage(store: SwayDBVersionedStore, plasmaParams: PlasmaPa
   }
 }
 
-object VersionedPlasmaStorage {
+object VersionedSwayAVLStorage {
   val InternalNodePrefix: Byte = 0: Byte
   val LeafPrefix: Byte = 1: Byte
   private val logger: Logger = LoggerFactory.getLogger("VersionedPlasmaStorage")
