@@ -8,8 +8,8 @@ import special.collection.Coll
 import supertagged.@@
 
 case class Proof(bytes: Array[Byte]){
-  def ergoType: ErgoType[Byte]         = ErgoType.byteType()
-  def ergoValue: ErgoValue[Coll[Byte]] = ErgoValue.of(Colls.fromArray(bytes), ergoType)
+  lazy val ergoType: ErgoType[Byte]         = ErgoType.byteType()
+  def ergoValue: ErgoValue[Coll[Byte]]      = ErgoValue.of(Colls.fromArray(bytes), ergoType)
 
   def toADProof: Array[Byte] @@ authds.SerializedAdProof.Tag = authds.SerializedAdProof @@ bytes
 

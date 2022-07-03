@@ -1,5 +1,6 @@
 package scorex.crypto.authds.avltree.batch
 
+
 import scorex.crypto.authds.{ADKey, Balance}
 import scorex.crypto.hash.{CryptographicHash, Digest}
 import scorex.db.LDBVersionedStore

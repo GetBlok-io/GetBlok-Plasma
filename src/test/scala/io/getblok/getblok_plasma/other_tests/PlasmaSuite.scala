@@ -1,21 +1,16 @@
-package other_tests
+package io.getblok.getblok_plasma.other_tests
 
 import com.google.common.primitives.Longs
-import io.getblok.getblok_plasma
-import io.getblok.getblok_plasma.other_tests.{buildUserBox, ergoClient, randomLongKey}
-import org.bouncycastle.crypto.digests.SkeinEngine.Parameter
 import org.ergoplatform.appkit.{ErgoValue, Parameters, SecretString}
 import org.ergoplatform.settings.ErgoAlgos.HF
-import scorex.crypto.hash.{Blake2b256, Digest, Digest32}
 import org.scalatest.funsuite.AnyFunSuite
 import org.slf4j.{Logger, LoggerFactory}
+import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert}
 import scorex.crypto.authds.avltree.batch.serialization.BatchAVLProverSerializer
-import scorex.crypto.authds.{ADDigest, ADKey, ADValue, SerializedAdProof}
-import scorex.crypto.authds.avltree.batch.{BatchAVLProver, BatchAVLVerifier, Insert, PersistentBatchAVLProver, VersionedAVLStorage}
+import scorex.crypto.authds.{ADDigest, ADKey, ADValue}
+import scorex.crypto.hash.{Blake2b256, Digest32}
 import sigmastate.Values.AvlTreeConstant
-import sigmastate.basics.DLogProtocol
-import sigmastate.interpreter.CryptoConstants
-import sigmastate.serialization.{CreateAvlTreeSerializer, ValueSerializer}
+import sigmastate.serialization.ValueSerializer
 import sigmastate.{AvlTreeData, AvlTreeFlags}
 import special.sigma.AvlTree
 import supertagged.@@

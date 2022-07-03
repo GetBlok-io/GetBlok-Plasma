@@ -1,25 +1,22 @@
-package other_tests
+package io.getblok.getblok_plasma.other_tests
 
+import scorex.crypto.authds.ADKey
+import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, NodeParameters, PersistentBatchAVLProver, VersionedLDBAVLStorage}
+//import io.getblok.getblok_plasma.persistence.SwayDBVersionedStore
 import org.scalatest.funsuite.AnyFunSuite
-import boopickle.Default._
-import com.google.common.primitives.Longs
-import io.getblok.getblok_plasma.PlasmaParameters
-import io.getblok.getblok_plasma.other_tests.{buildUserBox, randomLongKey}
-import io.getblok.getblok_plasma.persistence.SwayDBVersionedStore
 import org.slf4j.{Logger, LoggerFactory}
-import scorex.crypto.authds.{ADKey, ADValue}
-import scorex.crypto.authds.avltree.batch.serialization.BatchAVLProverSerializer
-import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, PersistentBatchAVLProver, VersionedSwayAVLStorage}
+import scorex.crypto.authds.ADValue
 import scorex.crypto.hash.{Blake2b256, Digest32}
-import supertagged.@@
+import scorex.db.LDBVersionedStore
 
 import java.io.File
-class SwayDBSuite extends AnyFunSuite{
-  val logger: Logger = LoggerFactory.getLogger("PlasmaSuite")
-  val swayDBVersionedStore = new SwayDBVersionedStore(new File("C:\\Users\\Kirat\\IdeaProjects\\GetBlok-Plasma\\sway"))
-  val versionedPlasma = new VersionedSwayAVLStorage(swayDBVersionedStore, PlasmaParameters(32, None))
 
-  val avlProver = new BatchAVLProver[Digest32, Blake2b256.type](32 , None)
+class LevelDBSuite extends AnyFunSuite{
+  val logger: Logger = LoggerFactory.getLogger("PlasmaSuite")
+  val ldbVersionedStore = new LDBVersionedStore(new File("C:\\Users\\Kirat\\IdeaProjects\\GetBlok-Plasma\\ldb"), 1)
+  val versionedPlasma = new VersionedLDBAVLStorage[Digest32](ldbVersionedStore, NodeParameters(32, None, 32))(Blake2b256)
+
+  val avlProver = new BatchAVLProver[Digest32, Blake2b256.type](32, None)
   val persistentBatchAVLProver = PersistentBatchAVLProver.create(avlProver, versionedPlasma)
 
   if(persistentBatchAVLProver.isSuccess){
@@ -44,7 +41,7 @@ class SwayDBSuite extends AnyFunSuite{
   }else{
     logger.error("There was an error", persistentBatchAVLProver.failed.get)
   }
-  swayDBVersionedStore.close()
+
 
   def toHexString(arr: Array[Byte]) = {
     BigInt(arr).toString(16)

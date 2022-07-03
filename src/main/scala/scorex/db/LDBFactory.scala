@@ -1,10 +1,10 @@
 package scorex.db
 
+import java.io.File
+import java.util.concurrent.locks.ReentrantReadWriteLock
 import org.iq80.leveldb.{DB, DBFactory, DBIterator, Options, Range, ReadOptions, Snapshot, WriteBatch, WriteOptions}
 import scorex.util.ScorexLogging
 
-import java.io.File
-import java.util.concurrent.locks.ReentrantReadWriteLock
 import scala.collection.mutable
 
 /**

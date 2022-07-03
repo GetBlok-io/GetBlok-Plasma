@@ -1,7 +1,6 @@
 package io.getblok.getblok_plasma
 
 import com.google.common.primitives.Longs
-import io.getblok.getblok_plasma.persistence.Types.{PlasmaKey, PlasmaVal, VersionedDigest}
 import org.bouncycastle.util.encoders.Hex
 import org.ergoplatform.appkit.{Address, ErgoId}
 import scorex.crypto.authds.{ADDigest, ADKey, ADValue}
@@ -23,6 +22,9 @@ trait ByteConversion[T] {
 
   def ofKey(pKey: PlasmaKey): T = convertFromBytes(pKey.key)
   def ofVal(pVal: PlasmaVal): T = convertFromBytes(pVal.value)
+
+  def toHexString(t: T): String = Hex.toHexString(convertToBytes(t))
+
 }
 
 object ByteConversion {
@@ -33,9 +35,9 @@ object ByteConversion {
   }
 
   implicit val convertsLong: ByteConversion[Long] = new ByteConversion[Long] {
-    override def convertToBytes(t: Long): Array[Byte] = Longs.toByteArray(t)
+    override def convertToBytes(t: Long): Array[Byte] = Longs.toByteArray(t) ++ Array.fill(24)(0.toByte)
 
-    override def convertFromBytes(bytes: Array[Byte]): Long = Longs.fromByteArray(bytes)
+    override def convertFromBytes(bytes: Array[Byte]): Long = Longs.fromByteArray(bytes.slice(0, 8))
   }
 
   implicit val convertsId: ByteConversion[ErgoId] = new ByteConversion[ErgoId] {
@@ -50,6 +52,11 @@ object ByteConversion {
     override def convertFromBytes(bytes: Array[Byte]): Values.ErgoTree = ErgoTreeSerializer.DefaultSerializer.deserializeErgoTree(bytes)
   }
 
+  implicit val convertsArrBytes: ByteConversion[Array[Byte]] = new ByteConversion[Array[Byte]] {
+    override def convertToBytes(t: Array[Byte]): Array[Byte] = t
+
+    override def convertFromBytes(bytes: Array[Byte]): Array[Byte] = bytes
+  }
 
 }
 

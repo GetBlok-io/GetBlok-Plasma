@@ -1,9 +1,9 @@
 package scorex.db
 
-import scorex.ByteUtils
-
 import java.io.Serializable
 import java.util
+
+import scorex.ByteUtils
 
 /**
   * Wraps byte array and provides hashCode, equals and compare methods.

@@ -3,12 +3,11 @@ package scorex.crypto.authds.avltree.batch
 import com.google.common.primitives.Ints
 import scorex.crypto.authds.avltree.batch.VersionedLDBAVLStorage.{InternalNodePrefix, LeafPrefix}
 import scorex.crypto.authds.{ADDigest, ADKey, ADValue, Balance}
+import scorex.util.encode.Base58
 import scorex.crypto.hash
 import scorex.crypto.hash.{CryptographicHash, Digest}
 import scorex.db.LDBVersionedStore
 import scorex.util.ScorexLogging
-import scorex.util.encode.Base58
-
 import scala.util.{Failure, Try}
 
 /**
@@ -31,7 +30,9 @@ class VersionedLDBAVLStorage[D <: Digest](store: LDBVersionedStore,
   private val fixedSizeValueMode = nodeParameters.valueSize.isDefined
 
   override def rollback(version: ADDigest): Try[(ProverNodes[D], Int)] = Try {
-    store.rollbackTo(version)
+    if (!this.version.contains(version)) { // do not rollback to self
+      store.rollbackTo(version)
+    }
 
     val top = VersionedLDBAVLStorage.fetch[D](ADKey @@ store.get(TopNodeKey).get)(hf, store, nodeParameters)
     val topHeight = Ints.fromByteArray(store.get(TopNodeHeight).get)
