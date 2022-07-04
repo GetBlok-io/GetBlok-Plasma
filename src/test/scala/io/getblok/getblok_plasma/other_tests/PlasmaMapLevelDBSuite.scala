@@ -3,7 +3,7 @@ package io.getblok.getblok_plasma.other_tests
 import com.google.common.primitives.{Ints, Longs}
 import io.getblok.getblok_plasma.{ByteConversion, PlasmaParameters}
 import io.getblok.getblok_plasma.collections.{LocalPlasmaMap, ProvenResult}
-import io.getblok.getblok_plasma.other_tests.PlasmaMapLevelDBSuite.{TestInt, convertsTestInt, mockData}
+import io.getblok.getblok_plasma.other_tests.PlasmaMapLevelDBSuite.{TestLong, convertsTestInt, mockData}
 import org.bouncycastle.util.encoders.Hex
 import org.ergoplatform.appkit.impl.ErgoTreeContract
 import org.ergoplatform.appkit.{Address, ErgoId, InputBox, Parameters}
@@ -20,7 +20,7 @@ import scala.jdk.CollectionConverters.seqAsJavaListConverter
 class PlasmaMapLevelDBSuite extends AnyFunSuite {
   var swayStore: LDBVersionedStore = _
   var avlStorage: VersionedLDBAVLStorage[Digest32] = _
-  var localMap: LocalPlasmaMap[Long, TestInt] = _
+  var localMap: LocalPlasmaMap[Long, TestLong] = _
   var lookUpBox: InputBox = _
 
 
@@ -28,12 +28,12 @@ class PlasmaMapLevelDBSuite extends AnyFunSuite {
   test("Create PlasmaMap") {
     swayStore = new LDBVersionedStore(new File("./level"), 10)
     avlStorage = new VersionedLDBAVLStorage[Digest32](swayStore, PlasmaParameters.default.toNodeParams)(Blake2b256)
-    localMap = new LocalPlasmaMap[Long, TestInt](avlStorage, AvlTreeFlags.AllOperationsAllowed, PlasmaParameters.default)
+    localMap = new LocalPlasmaMap[Long, TestLong](avlStorage, AvlTreeFlags.AllOperationsAllowed, PlasmaParameters.default)
     println(s"Digest ${Hex.toHexString(localMap.digest)}")
   }
 
   test("Add values") {
-    val result: ProvenResult[TestInt] = localMap.insert(mockData: _*)
+    val result: ProvenResult[TestLong] = localMap.insert(mockData: _*)
     println(s"Result: ${result}")
     println(s"Proof: ${result.proof}")
     println(s"Digest: ${Hex.toHexString(localMap.digest)}")
@@ -54,7 +54,7 @@ class PlasmaMapLevelDBSuite extends AnyFunSuite {
 //  }
 
     test("Spend box"){
-      val randomLongs = for(i <- 1L to 80L) yield i -> TestInt(i.toInt + 1)
+      val randomLongs = for(i <- 1L to 80L) yield i -> TestLong(i.toInt + 1)
       println(randomLongs + " - random int")
       val oldErgoValue = localMap.ergoValue
       val result = localMap.update(randomLongs:_*)
@@ -89,15 +89,15 @@ class PlasmaMapLevelDBSuite extends AnyFunSuite {
 
 object PlasmaMapLevelDBSuite {
 
-  case class TestInt(i: Int)
+  case class TestLong(i: Long)
 
-  implicit val convertsTestInt: ByteConversion[TestInt] = new ByteConversion[TestInt] {
-    override def convertToBytes(t: TestInt): Array[Byte] = Ints.toByteArray(t.i)
+  implicit val convertsTestInt: ByteConversion[TestLong] = new ByteConversion[TestLong] {
+    override def convertToBytes(t: TestLong): Array[Byte] = Longs.toByteArray(t.i)
 
-    override def convertFromBytes(bytes: Array[Byte]): TestInt = TestInt(Ints.fromByteArray(bytes))
+    override def convertFromBytes(bytes: Array[Byte]): TestLong = TestLong(Longs.fromByteArray(bytes))
   }
 
-  val mockData: Seq[(Long, TestInt)] = for(i <- 1L to 1000L) yield i -> TestInt(i.toInt)
+  val mockData: Seq[(Long, TestLong)] = for(i <- 1L to 1000L) yield i -> TestLong(i)
 
   def ergoId(str: String):    ErgoId = ErgoId.create(str)
   def ergoTree(str: String):  Values.ErgoTree = Address.create(str).getErgoAddress.script
