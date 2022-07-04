@@ -49,7 +49,7 @@ as update their values during execution of the contract.
 The first draft of the share state contract may be found below:
 
 ```scala
-    {
+{
   val shareState = SELF.R4[AvlTree].get
   val maxScore   = SELF.R5[Int].get
 
@@ -112,7 +112,7 @@ The first draft of the share state contract may be found below:
 ### Tests
 
 We broadcasted two different transaction onto the mainnet Ergo blockchain to test out different implementations
-of the Posted Share Score. In each transaction, we initialized a Share State to contain exactly
+of the Posted Share State. In each transaction, we initialized a Share State to contain exactly
 2239 miner addresses that have previously mined to Getblok. Each miner's score was randomly generated,
 (with some additional score being added to miners who were to be paid out, in order to ensure
 box values were greater than 0.001 ERG).
@@ -137,6 +137,10 @@ by first sorting each miner's hashed proposition bytes using their value taken a
 used this sorted collection to pay out miner's whose hashed propBytes existed consecutively within the
 sorted list.
 
+Transaction cost for both transactions was significantly lower than the cost of the original
+SmartPool transactions, which tended to be around 300000 while only paying 10 miners per
+transaction (Part of this is due to some additional complexities needed to keep track of balances
+in the original contracts).
 ```scala
 mockData.sortBy(m => BigInt(m._1.toHashedStateMiner.bytes)).take(NUM_MINERS)
 ```
