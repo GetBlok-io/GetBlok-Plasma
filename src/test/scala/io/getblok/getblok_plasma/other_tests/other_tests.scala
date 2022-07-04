@@ -47,13 +47,14 @@ package object other_tests {
     }
   }
 
-  def buildGetManyAVLBoxes(value: Long, keys: Seq[Array[Byte]], tree: ErgoValue[AvlTree], proof: ErgoValue[Coll[Byte]]): Seq[InputBox] = {
+  def buildGetManyAVLBoxes(value: Long, keys: Seq[(Array[Byte], Array[Byte])], tree: ErgoValue[AvlTree], proof: ErgoValue[Coll[Byte]]): Seq[InputBox] = {
     ergoClient.execute{
       ctx =>
         val avlBox = ctx.newTxBuilder().outBoxBuilder()
           .value(value / 2)
           .contract(getManyContract(ctx))
-          .registers(tree, ErgoValue.of(Colls.fromArray(keys.toArray.map(k => Colls.fromArray(k))), ErgoType.collType(ErgoType.byteType())))
+          .registers(tree, ErgoValue.of(Colls.fromArray(keys.toArray.map(k => Colls.fromArray(k._1) -> Colls.fromArray(k._2))),
+            ErgoType.pairType(ErgoType.collType(ErgoType.byteType()), ErgoType.collType(ErgoType.byteType()))))
           .build()
           .convertToInputWith("ce552663312afc2379a91f803c93e2b10b424f176fbc930055c10def2fd88a5d", 0)
 
@@ -84,14 +85,18 @@ package object other_tests {
     """
       | {
       | val tree  = SELF.R4[AvlTree].get
-      | val keys  = SELF.R5[Coll[Coll[Byte]]].get
+      | val keys  = SELF.R5[Coll[(Coll[Byte], Coll[Byte])]].get
       | val proof = INPUTS(1).R4[Coll[Byte]].get
-      | val keysExist = tree.getMany(keys, proof).forall{
+      | val keysExist = tree.getMany(keys.map{ (k: (Coll[Byte], Coll[Byte]) ) => k._1 }, proof).forall{
       |   (o: Option[Coll[Byte]]) =>
       |     o.isDefined
       | }
-      |
-      | sigmaProp(keysExist)
+      | val keysUpdated = tree.update(keys, proof).isDefined
+      | val zero = 0
+      | val zeroByte: Byte = 0.toByte
+      | val constBytes: Coll[Byte] = Coll(0.toByte, 0.toByte, 0.toByte, 0.toByte)
+      | val isOne = byteArrayToLong(constBytes.append( keys(0)._2 )).toInt == 2
+      | sigmaProp(keysExist && keysUpdated && isOne)
       | }
       |""".stripMargin
 

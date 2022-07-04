@@ -2,8 +2,8 @@ package io.getblok.getblok_plasma.other_tests
 
 import com.google.common.primitives.{Ints, Longs}
 import io.getblok.getblok_plasma.{ByteConversion, PlasmaParameters}
-import io.getblok.getblok_plasma.collections.{PlasmaMap, ProvenResult}
-import io.getblok.getblok_plasma.other_tests.PlasmaMapLevelDBSuite.mockData
+import io.getblok.getblok_plasma.collections.{LocalPlasmaMap, ProvenResult}
+import io.getblok.getblok_plasma.other_tests.PlasmaMapLevelDBSuite.{TestInt, convertsTestInt, mockData}
 import org.bouncycastle.util.encoders.Hex
 import org.ergoplatform.appkit.impl.ErgoTreeContract
 import org.ergoplatform.appkit.{Address, ErgoId, InputBox, Parameters}
@@ -20,42 +20,46 @@ import scala.jdk.CollectionConverters.seqAsJavaListConverter
 class PlasmaMapLevelDBSuite extends AnyFunSuite {
   var swayStore: LDBVersionedStore = _
   var avlStorage: VersionedLDBAVLStorage[Digest32] = _
-  var plasmaMap: PlasmaMap[Long, Array[Byte]] = _
+  var localMap: LocalPlasmaMap[Long, TestInt] = _
   var lookUpBox: InputBox = _
+
+
+
   test("Create PlasmaMap") {
     swayStore = new LDBVersionedStore(new File("./level"), 10)
     avlStorage = new VersionedLDBAVLStorage[Digest32](swayStore, PlasmaParameters.default.toNodeParams)(Blake2b256)
-    plasmaMap = new PlasmaMap[Long, Array[Byte]](avlStorage, AvlTreeFlags.AllOperationsAllowed, PlasmaParameters.default)
-    println(s"Digest ${Hex.toHexString(plasmaMap.digest)}")
+    localMap = new LocalPlasmaMap[Long, TestInt](avlStorage, AvlTreeFlags.AllOperationsAllowed, PlasmaParameters.default)
+    println(s"Digest ${Hex.toHexString(localMap.digest)}")
   }
 
   test("Add values") {
-    val result: ProvenResult[Array[Byte]] = plasmaMap.insert(mockData: _*)
+    val result: ProvenResult[TestInt] = localMap.insert(mockData: _*)
     println(s"Result: ${result}")
     println(s"Proof: ${result.proof}")
-    println(s"Digest: ${Hex.toHexString(plasmaMap.digest)}")
-    println(s"Manifest: ${plasmaMap.manifest.toHexString}")
+    println(s"Digest: ${Hex.toHexString(localMap.digest)}")
+    println(s"Manifest: ${localMap.toPlasmaMap.makeManifest.toHexString}")
   }
 
-  test("lookup id 1") {
-        val result = plasmaMap.lookUp(mockData.head._1)
-        println(s"Result: ${result}")
-  }
-
-  test("Place in box") {
-        val result = plasmaMap.lookUp(mockData.head._1)
-        println(Longs.toByteArray(mockData.head._1).length)
-        println(s"Result: ${result}")
-        val box = buildAVLBox(Parameters.OneErg, Longs.toByteArray(mockData.head._1), plasmaMap.ergoValue, result.proof.ergoValue)
-        println(box.toJson(true))
-  }
+//  test("lookup id 1") {
+//        val result = plasmaMap.lookUp(mockData.head._1)
+//        println(s"Result: ${result}")
+//  }
+//
+//  test("Place in box") {
+//        val result = plasmaMap.lookUp(mockData.head._1)
+//        println(Longs.toByteArray(mockData.head._1).length)
+//        println(s"Result: ${result}")
+//        val box = buildAVLBox(Parameters.OneErg, Longs.toByteArray(mockData.head._1), plasmaMap.ergoValue, result.proof.ergoValue)
+//        println(box.toJson(true))
+//  }
 
     test("Spend box"){
-      val randomLongs = for(i <- 1L to 80L) yield i
+      val randomLongs = for(i <- 1L to 80L) yield i -> TestInt(i.toInt + 1)
       println(randomLongs + " - random int")
-      val result = plasmaMap.lookUp(randomLongs:_*)
+      val oldErgoValue = localMap.ergoValue
+      val result = localMap.update(randomLongs:_*)
       println(s"Result: ${result}")
-      val boxes = buildGetManyAVLBoxes(Parameters.OneErg, randomLongs.map(l => ByteConversion.convertsLong.convertToBytes(l)), plasmaMap.ergoValue, result.proof.ergoValue)
+      val boxes = buildGetManyAVLBoxes(Parameters.OneErg, randomLongs.map(l => ByteConversion.convertsLong.convertToBytes(l._1) -> convertsTestInt.convertToBytes(l._2)), oldErgoValue, result.proof.ergoValue)
       println(boxes.head.toJson(true))
       ergoClient.execute{
         ctx =>
@@ -84,7 +88,16 @@ class PlasmaMapLevelDBSuite extends AnyFunSuite {
 }
 
 object PlasmaMapLevelDBSuite {
-  val mockData: Seq[(Long, Array[Byte])] = for(i <- 1L to 100000L) yield i -> Ints.toByteArray(i.toInt)
+
+  case class TestInt(i: Int)
+
+  implicit val convertsTestInt: ByteConversion[TestInt] = new ByteConversion[TestInt] {
+    override def convertToBytes(t: TestInt): Array[Byte] = Ints.toByteArray(t.i)
+
+    override def convertFromBytes(bytes: Array[Byte]): TestInt = TestInt(Ints.fromByteArray(bytes))
+  }
+
+  val mockData: Seq[(Long, TestInt)] = for(i <- 1L to 1000L) yield i -> TestInt(i.toInt)
 
   def ergoId(str: String):    ErgoId = ErgoId.create(str)
   def ergoTree(str: String):  Values.ErgoTree = Address.create(str).getErgoAddress.script

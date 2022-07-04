@@ -1,9 +1,13 @@
 package io.getblok.getblok_plasma.collections
 
 import io.getblok.getblok_plasma.{ByteConversion, PlasmaParameters}
-import scorex.crypto.authds.avltree.batch._
+import scorex.crypto.authds.avltree.batch.{BatchAVLProver, Insert, Lookup, PersistentBatchAVLProver, Remove, Update, VersionedAVLStorage}
+import scorex.crypto.authds.{ADKey, ADValue}
 import scorex.crypto.hash.{Blake2b256, Digest32}
 import sigmastate.AvlTreeFlags
+import supertagged.@@
+
+import java.io.File
 
 /**
  * Basic key-value mapping of AVL Tree using
@@ -11,12 +15,13 @@ import sigmastate.AvlTreeFlags
  * @tparam K
  * @tparam V
  */
-class PlasmaMap[K, V](override val flags: AvlTreeFlags, override val params: PlasmaParameters,
-                      initProver: Option[BatchAVLProver[Digest32, Blake2b256.type]] = None)
-                     (implicit val convertKey: ByteConversion[K], convertVal: ByteConversion[V]) extends PlasmaBase[K, V]{
+class LocalPlasmaMap[K, V](store: VersionedAVLStorage[Digest32], override val flags: AvlTreeFlags, override val params: PlasmaParameters)
+                          (implicit val convertKey: ByteConversion[K], convertVal: ByteConversion[V]) extends LocalPlasmaBase[K, V]{
+  override val storage: VersionedAVLStorage[Digest32] = store
 
-  override var prover: BatchAVLProver[Digest32, Blake2b256.type] = {
-    initProver.getOrElse(new BatchAVLProver[Digest32, Blake2b256.type](params.keySize, params.valueSizeOpt))
+  override val prover: PersistentBatchAVLProver[Digest32, Blake2b256.type] = {
+    val avlProver = new BatchAVLProver[Digest32, Blake2b256.type](params.keySize, params.valueSizeOpt)
+    PersistentBatchAVLProver.create(avlProver, store).getOrElse(throw new ProverCreationException)
   }
 
   override def insert(keyVals: (K, V)*): ProvenResult[V] = {
@@ -28,7 +33,7 @@ class PlasmaMap[K, V](override val flags: AvlTreeFlags, override val params: Pla
         )
       )
 
-    val proof = prover.generateProof()
+    val proof = prover.generateProofAndUpdateStorage()
     ProvenResult(response, Proof(proof))
   }
 
@@ -40,7 +45,7 @@ class PlasmaMap[K, V](override val flags: AvlTreeFlags, override val params: Pla
             .map(o => o.map(v => convertVal.convertFromBytes(v)))
         )
       )
-    val proof = prover.generateProof()
+    val proof = prover.generateProofAndUpdateStorage()
     ProvenResult(response, Proof(proof))
   }
 
@@ -52,7 +57,7 @@ class PlasmaMap[K, V](override val flags: AvlTreeFlags, override val params: Pla
             .map(o => o.map(v => convertVal.convertFromBytes(v)))
         )
       )
-    val proof = prover.generateProof()
+    val proof = prover.generateProofAndUpdateStorage()
     ProvenResult(response, Proof(proof))
   }
 
@@ -64,13 +69,20 @@ class PlasmaMap[K, V](override val flags: AvlTreeFlags, override val params: Pla
             .map(o => o.map(v => convertVal.convertFromBytes(v)))
         )
       )
-    val proof = prover.generateProof()
+    val proof = prover.generateProofAndUpdateStorage()
     ProvenResult(response, Proof(proof))
   }
 
+
+  /**
+   * Get the key-values currently associated with this PlasmaMap from persistent storage.
+   *
+   * @return Sequence of Key Values from persistent storage
+   */
+  override def persistentItems: Seq[(K, V)] = ???
+
   /**
    * Returns persistent items as a Map
-   *
    * @return Return mapping of keys to values
    */
   override def toMap: Map[K, V] = ???

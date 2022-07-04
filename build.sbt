@@ -4,7 +4,7 @@ organization := "io.getblok"
 version := "0.5"
 //idePackagePrefix := Some("io.getblok.getblok_plasma")
 scalaVersion := "2.12.10"
-
+ThisBuild / version      := "0.5-SNAPSHOT"
 libraryDependencies ++= Seq(
   "org.ergoplatform" %% "ergo-appkit" % "develop-d90135c5-SNAPSHOT",
   "org.postgresql" % "postgresql" % "42.3.3",
