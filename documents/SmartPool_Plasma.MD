@@ -137,10 +137,6 @@ by first sorting each miner's hashed proposition bytes using their value taken a
 used this sorted collection to pay out miner's whose hashed propBytes existed consecutively within the
 sorted list.
 
-Transaction cost for both transactions was significantly lower than the cost of the original
-SmartPool transactions, which tended to be around 300000 while only paying 10 miners per
-transaction (Part of this is due to some additional complexities needed to keep track of balances
-in the original contracts).
 ```scala
 mockData.sortBy(m => BigInt(m._1.toHashedStateMiner.bytes)).take(NUM_MINERS)
 ```
@@ -152,5 +148,10 @@ transaction was nearly 20% larger than the proof for this transaction.
 
 The transaction may be viewed [here](https://explorer.ergoplatform.com/en/transactions/4dc2502e9b0ce5de8c51a34cb4149b0bd2a243b23faef8ca3ddc950d7d35f61f)
 
+----
 
+Transaction cost for both transactions was significantly lower than the cost of the original
+SmartPool transactions, which tended to be around 300000 while only paying 10 miners per
+transaction (Part of this is due to some additional complexities needed to keep track of balances
+in the original contracts).
 ## Design 2: Persistent Share State
