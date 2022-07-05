@@ -142,7 +142,7 @@ mockData.sortBy(m => BigInt(m._1.toHashedStateMiner.bytes)).take(NUM_MINERS)
 ```
 
 This test transaction allowed us to pay out 300 miners from the Share State, with a transaction cost
-of 208094, a 1% increase in transaction cost for a nearly 300% increase in the number of miners paid out.
+of 208094, a 1% increase in transaction cost for a nearly 200% increase in the number of miners paid out.
 Moreover, proof size for this transaction was around ~15000 bytes, meaning that the proof for the previous
 transaction was nearly 20% larger than the proof for this transaction.
 
