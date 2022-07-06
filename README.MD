@@ -2,48 +2,137 @@
 GetBlok Plasma is a library on top of Ergo Appkit that provides an abstraction layer to simplify
 the process of integrating AVL Trees (AKA *Plasma*) into off-chain code. The goal is to give developers an easy way 
 to use this Layer-2 scaling solution in contracts, off-chain code, and distributed systems managing the
-Plasma itself. GetBlok Plasma uses a versioned storage implementation powered by **SwayDB**, allowing
+Plasma itself. GetBlok Plasma uses the default versioned storage implementation powered by **LevelDB**, with
+another **SwayDB** implementation in the work. This allows
 for distributed systems to keep track of the key-value pairs held in digests stored on-chain.
 
 ## Details
 
-Currently, GetBlok Plasma makes a few assumptions to make things easier for new developers working with 
-AVL Trees. The following is true for every AVL Tree made in GetBlok Plasma:
-- Digests from the AVL Tree are 32 bytes in length (+ 1 for tree height)
-- Key and label sizes are the same length, and also have a size of 32 bytes
-- Value sizes may be optionally set to any number, but the default value is to have no restriction
-- Each AVLTree uses Blake2b256 hashing, as this is the standard hashing function used on the Ergo blockchain
+Creating and managing AVL Trees is greatly simplified when using the library. To create a normal,
+un-stored / temporary AVL Tree, we use *Plasma Maps*. Plasma Maps look similar to normal Scala maps on the surface
+with a few changes that make them compatible with on-chain AVL Trees.
 
-Digests stored in SwayDB are associated with some version number. When putting and removing key-value
-pairs, one must provide a digest representing the new state of the tree. During the process of updating
-the tree, all key-value pairs are taken from the last existing version of the tree and are placed
-into the new tree version. From there, removals and inserts are operated on the new version so that
-the digest provided is properly mapped to the key-value pairs it represents.
+```scala
+import io.getblok.getblok_plasma.PlasmaParameters
+import io.getblok.getblok_plasma.collections.PlasmaMap
+import org.ergoplatform.appkit.ErgoId
+import sigmastate.{AvlTreeFlags, Values}
+// Plasma Map that uses ErgoId's as keys, and ErgoTrees as values
+val plasmaMap = new PlasmaMap[ErgoId, Values.ErgoTree](AvlTreeFlags.AllOperationsAllowed, PlasmaParameters.default)
+```
 
-# Serialization
-The key-value pairs associated with an AVL Tree digest are serialized into a SwayDB `MultiMap`. This
-is the versioned storage implementation that allows for usage of the `PersistentBatchAVLProver`, essentially
-a class that keeps track changes made to the AVL Tree. Every change in the AVL Tree creates a new unique
-digest, which is stored as the AVL Tree's *version*. 
+All Plasma Maps use 32 byte digests and Blake2b256 hashing. Any class may be inserted into a Plasma Map
+so long as there is a corresponding implicit `ByteConversion` for that class.
 
-We use three different classes representing versions/digests, keys, and values present in the AVL Tree.
-- `PlasmaKey` represents a simple array of bytes corresponding to some key in the AVL Tree. As per
-the details above, each `PlasmaKey` is 32 bytes in length
-- `PlasmaVal` represents an array of bytes corresponding to a value in the AVL Tree. `PlasmaVal` may be of
-any size, unless the `valueSizeOpt` is set in `PlasmaParameters`.
-- `VersionedDigest` is an array of bytes representing the digest of the AVL Tree that is linked to some
-set of `PlasmaKey -> PlasmaVal` pairs. Each `VersionedDigest` is serialized in the following way:
-  - The first 33 bytes of the `VersionedDigest` represent the digest taken from the AVL Tree's prover. 32 of these
-  bytes represent the actual digest, while the last byte represents the AVL Tree's height.
-  - All bytes after the first 33 represent a `Long` corresponding to the version number of the tree.
+```scala
+import io.getblok.getblok_plasma.ByteConversion
+import org.ergoplatform.appkit.ErgoId
+import sigmastate.Values
+import sigmastate.serialization.ErgoTreeSerializer
 
-For storage in SwayDB, GetBlok Plasma creates a new `child` within the `MultiMap`. Each child may be
-directly called using the `VersionedDigest` associated with it. Knowledge of the version number is not
-needed, as it is assumed that no two `VersionedDigest`s will use the same digest value.
+// Default ByteConversions for ErgoId and ErgoTree
+implicit val convertsId: ByteConversion[ErgoId] = new ByteConversion[ErgoId] {
+  override def convertToBytes(t: ErgoId): Array[Byte] = t.getBytes
 
-Once a child is created, reading key-value pairs is as simple as providing the `VersionedDigest` and
-calling `get(k: PlasmaKey)` on the `MultiMap` returned by the `child`. If you only wish to read key-value
-pairs from the last version, then you may call `get(k: PlasmaKey)` or `apply(k: PlasmaKey)` on the
-`SwayDBVersionedStore` itself. Traversing the AVL Tree for a specific value may be done using `VersionedPlasmaStorage.fetch(k: ADKey)`
-These functions are rather low-level though, and as more abstractions are made it should be unnecessary
-to call them directly.
+  override def convertFromBytes(bytes: Array[Byte]): ErgoId = new ErgoId(bytes)
+}
+
+implicit val convertsErgoTree: ByteConversion[Values.ErgoTree] = new ByteConversion[Values.ErgoTree] {
+  override def convertToBytes(t: Values.ErgoTree): Array[Byte] = t.bytes
+
+  override def convertFromBytes(bytes: Array[Byte]): Values.ErgoTree = ErgoTreeSerializer.DefaultSerializer.deserializeErgoTree(bytes)
+}
+```
+
+Custom classes may also be used with their own definitions to allow for flexibility in contracts:
+
+```scala
+import com.google.common.primitives.{Ints, Longs}
+import io.getblok.getblok_plasma.ByteConversion
+import org.bouncycastle.util.encoders.Hex
+import org.ergoplatform.appkit.{ErgoType, ErgoValue}
+import sigmastate.eval.Colls
+import special.collection.Coll
+
+case class StateScore(score: Long, paid: Boolean) {
+  def toBytes: Array[Byte] = Longs.toByteArray(score) ++ Array(if(paid) 1.toByte else 0.toByte)
+}
+
+def getPaid(byte: Byte): Boolean = {
+  byte match {
+    case 0 =>
+      false
+    case 1 =>
+      true
+    case _ =>
+      throw new Exception("A payment byte was serialized incorrectly!")
+  }
+}
+  implicit val scoreConversion: ByteConversion[StateScore] = new ByteConversion[StateScore] {
+    override def convertToBytes(t: StateScore): Array[Byte] = t.toBytes
+
+    override def convertFromBytes(bytes: Array[Byte]): StateScore = StateScore(Longs.fromByteArray(bytes.slice(0, 8)), getPaid(bytes.slice(8, 9).head))
+  }
+```
+
+Once a Plasma Map is created, operations may be performed on it. All operations done on a Plasma Map
+return some `OpResult` that wraps the Plasma Map's *value* field. The set of these `OpResult`s
+are returned in a `ProvenResult`, which holds the returned values along with a `Proof` object that holds
+the corresponding proof for the batched set of operations. `OpResult`s are all returned in the order in 
+which they were entered.
+
+```scala
+import io.getblok.getblok_plasma.PlasmaParameters
+import io.getblok.getblok_plasma.collections.{OpResult, PlasmaMap, Proof, ProvenResult}
+import org.ergoplatform.appkit.ErgoId
+import sigmastate.AvlTreeFlags
+val tokenMap = new PlasmaMap[ErgoId, Long](AvlTreeFlags.AllOperationsAllowed, PlasmaParameters.default)
+
+val cometID: ErgoId = ErgoId.create("0cd8c9f416e5b1ca9f986a7f10a84191dfb85941619e49e53c0dc30ebf83324b")
+val tokenData: Seq[(ErgoId, Long)] = Seq(cometID -> 100L)
+
+val result: ProvenResult[Long] = tokenMap.insert(tokenData: _*)
+
+val opResults: Seq[OpResult[Long]] = result.response
+val proof: Proof = result.proof
+
+```
+
+All of these classes have functions to convert between common types used in Ergo Appkit. This allows for easy
+interactions between Plasma Map's and on-chain contracts.
+
+```scala
+import io.getblok.getblok_plasma.collections.{PlasmaMap, Proof}
+import org.ergoplatform.appkit.{ErgoClient, ErgoContract, ErgoId, Parameters}
+
+implicit val ergoClient: ErgoClient
+implicit val myContract: ErgoContract
+implicit val myMap: PlasmaMap[ErgoId, Long]
+implicit val myProof: Proof
+ergoClient.execute {
+  ctx =>
+    val txB = ctx.newTxBuilder()
+    val outB = txB.outBoxBuilder()
+    val outBox = outB
+            .value(Parameters.OneErg)
+            .contract(myContract)
+            .registers(myMap.ergoValue, myProof.ergoValue)
+            .build()
+}
+```
+
+Interacting with a locally stored Plasma Map is done in a similar way, except that you must use the
+`LocalPlasmaMap` class instead.
+```scala
+import io.getblok.getblok_plasma.PlasmaParameters
+import io.getblok.getblok_plasma.collections.LocalPlasmaMap
+import scorex.crypto.authds.avltree.batch.VersionedLDBAVLStorage
+import scorex.crypto.hash.{Blake2b256, Digest32}
+import scorex.db.LDBVersionedStore
+import sigmastate.{AvlTreeFlags, Values}
+import java.io.File
+
+val ldbStore = new LDBVersionedStore(new File("./level"), 10)
+val avlStorage = new VersionedLDBAVLStorage[Digest32](ldbStore, PlasmaParameters.default.toNodeParams)(Blake2b256)
+val localMap = new LocalPlasmaMap[Long, Values.ErgoTree](avlStorage, AvlTreeFlags.AllOperationsAllowed, PlasmaParameters.default)
+```
