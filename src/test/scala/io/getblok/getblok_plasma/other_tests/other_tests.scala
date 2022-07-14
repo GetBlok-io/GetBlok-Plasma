@@ -29,7 +29,6 @@ package object other_tests {
           .contract(new ErgoTreeContract(creatorAddress.getErgoAddress.script, NetworkType.MAINNET))
           .build()
           .convertToInputWith("ce552663312afc2379a91f803c93e2b10b424f176fbc930055c10def2fd88a5d", 0)
-        sigma.util.Extensions
         return inputBox
     }
   }

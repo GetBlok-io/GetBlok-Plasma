@@ -1,6 +1,6 @@
 package io.getblok.getblok_plasma.collections
 
-import io.getblok.getblok_plasma.PlasmaParameters
+import io.getblok.getblok_plasma.{ByteConversion, PlasmaParameters}
 import org.bouncycastle.util.encoders.Hex
 import org.ergoplatform.appkit.{ErgoType, ErgoValue}
 import org.ergoplatform.settings.ErgoAlgos.HF
@@ -42,25 +42,15 @@ trait PlasmaBase[K, V] {
 
   override def toString: String = Hex.toHexString(digest).toLowerCase
 
-  def makeManifest: Manifest = {
+  def getManifest(subTreeDepth: Int = 0): Manifest = {
     implicit val hf: HF = Blake2b256
     val plasmaSerializer = new BatchAVLProverSerializer[Digest32, Blake2b256.type]
-    val slicedTree = plasmaSerializer.slice(prover)
+    val slicedTree = plasmaSerializer.slice(prover, subTreeDepth)
     val manifest = plasmaSerializer.manifestToBytes(slicedTree._1)
     val subTrees = slicedTree._2.map(plasmaSerializer.subtreeToBytes)
     Manifest(digest, manifest, subTrees)
   }
 
-  def loadManifest(manifest: Manifest): _ <: PlasmaBase[K, V] = {
-    implicit val hf: HF = Blake2b256
-    val plamaSerializer = new BatchAVLProverSerializer[Digest32, Blake2b256.type]
-
-    val treeManifest = plamaSerializer.manifestFromBytes(manifest.bytes)
-    val subTrees = manifest.subTrees.map(t => plamaSerializer.subtreeFromBytes(t, params.keySize))
-
-    prover = plamaSerializer.combine(treeManifest.get, subTrees.map(_.get)).getOrElse(throw new ProverCreationException)
-    this
-  }
 
   /**
    * Returns persistent items as a Map

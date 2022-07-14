@@ -1,12 +1,13 @@
+import xerial.sbt.Sonatype.GitHubHosting
 
 name := "getblok_plasma"
-organization := "io.getblok"
-version := "0.5"
+organization := "io.github.getblok-io"
+version := "0.0.2"
 //idePackagePrefix := Some("io.getblok.getblok_plasma")
 scalaVersion := "2.12.10"
-ThisBuild / version      := "0.5-SNAPSHOT"
+ThisBuild / version      := "0.0.2"
 libraryDependencies ++= Seq(
-  "org.ergoplatform" %% "ergo-appkit" % "develop-d90135c5-SNAPSHOT",
+  "org.ergoplatform" %% "ergo-appkit" % "4.0.8",
   "org.postgresql" % "postgresql" % "42.3.3",
   "org.scalatest" %% "scalatest" % "3.2.11" % "test",
   "io.swaydb" %% "swaydb" % "0.16.2",
@@ -28,6 +29,8 @@ resolvers ++= Seq(
   "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/",
   "Bintray" at "https://jcenter.bintray.com/"
 )
-pomIncludeRepository := { _ => false }
+
+
+
 assemblyJarName in assembly := s"plasma-${version.value}.jar"
 assemblyOutputPath in assembly := file(s"./plasma-${version.value}.jar/")
