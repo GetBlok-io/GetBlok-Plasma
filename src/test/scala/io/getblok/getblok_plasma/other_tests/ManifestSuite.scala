@@ -34,6 +34,17 @@ class ManifestSuite extends AnyFunSuite {
     for(s <- manString._2) println(s"SubTree: ${s}")
   }
 
+  test("Load a manifest into a new tree"){
+    val newMap = new PlasmaMap[Long, Long](AvlTreeFlags.AllOperationsAllowed, PlasmaParameters.default)
+    println(s"Init Digest: ${newMap.toString}")
+    val oldManf = plasma.getManifest(255)
+    newMap.loadManifest(oldManf)
+    println(s"Manifest Digest: ${oldManf.digestString}")
+    println(s"Loaded Digest: ${newMap.toString}")
+    println(s"Real Digest: ${plasma.toString}")
+    require(newMap.toString == plasma.toString && newMap.toString == oldManf.digestString)
+  }
+
   test("Copy tree via manifest"){
     val dupMap = plasma.copy()
     println(s"plasmaDigest: ${plasma.getManifest().digestString}")

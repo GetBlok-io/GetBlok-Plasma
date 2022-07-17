@@ -1,9 +1,11 @@
 package io.getblok.getblok_plasma
 
 import com.google.common.primitives.Longs
+import org.ergoplatform.appkit.JavaHelpers.JByteRType
 import org.ergoplatform.appkit._
 import org.ergoplatform.appkit.impl.ErgoTreeContract
 import org.slf4j.{Logger, LoggerFactory}
+import scalan.RType
 import scorex.crypto.authds.ADKey
 import sigmastate.eval.Colls
 import special.collection.Coll
@@ -33,7 +35,7 @@ package object other_tests {
     }
   }
 
-  def buildAVLBox(value: Long, key: Array[Byte], tree: ErgoValue[AvlTree], proof: ErgoValue[Coll[Byte]]): InputBox = {
+  def buildAVLBox(value: Long, key: Array[Byte], tree: ErgoValue[AvlTree], proof: ErgoValue[Coll[java.lang.Byte]]): InputBox = {
     ergoClient.execute{
       ctx =>
         val inputBox = ctx.newTxBuilder().outBoxBuilder()
@@ -46,14 +48,16 @@ package object other_tests {
     }
   }
 
-  def buildGetManyAVLBoxes(value: Long, keys: Seq[(Array[Byte], Array[Byte])], tree: ErgoValue[AvlTree], proof: ErgoValue[Coll[Byte]]): Seq[InputBox] = {
+  def buildGetManyAVLBoxes(value: Long, keys: Seq[(Array[Byte], Array[Byte])], tree: ErgoValue[AvlTree], proof: ErgoValue[Coll[java.lang.Byte]]): Seq[InputBox] = {
+
     ergoClient.execute{
       ctx =>
+        val ergoValue = ErgoValue.of(Colls.fromArray(keys.toArray.map(k => Colls.fromArray(k._1).map(Iso.jbyteToByte.from) -> Colls.fromArray(k._2).map(Iso.jbyteToByte.from))),
+          ErgoType.pairType(ErgoType.collType(ErgoType.byteType()), ErgoType.collType(ErgoType.byteType())))
         val avlBox = ctx.newTxBuilder().outBoxBuilder()
           .value(value / 2)
           .contract(getManyContract(ctx))
-          .registers(tree, ErgoValue.of(Colls.fromArray(keys.toArray.map(k => Colls.fromArray(k._1) -> Colls.fromArray(k._2))),
-            ErgoType.pairType(ErgoType.collType(ErgoType.byteType()), ErgoType.collType(ErgoType.byteType()))))
+          .registers(tree, ergoValue)
           .build()
           .convertToInputWith("ce552663312afc2379a91f803c93e2b10b424f176fbc930055c10def2fd88a5d", 0)
 
@@ -94,7 +98,7 @@ package object other_tests {
       | val zero = 0
       | val zeroByte: Byte = 0.toByte
       | val constBytes: Coll[Byte] = Coll(0.toByte, 0.toByte, 0.toByte, 0.toByte)
-      | val isOne = byteArrayToLong(constBytes.append( keys(0)._2 )).toInt == 2
+      | val isOne = byteArrayToLong( keys(0)._2 ).toInt == 2
       | sigmaProp(keysExist && keysUpdated && isOne)
       | }
       |""".stripMargin

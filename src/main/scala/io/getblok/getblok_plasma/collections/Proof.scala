@@ -1,7 +1,8 @@
 package io.getblok.getblok_plasma.collections
 
 import org.bouncycastle.util.encoders.Hex
-import org.ergoplatform.appkit.{ErgoType, ErgoValue}
+import org.ergoplatform.appkit.JavaHelpers.JByteRType
+import org.ergoplatform.appkit.{ErgoType, ErgoValue, Iso}
 import scorex.crypto.authds
 import sigmastate.eval.Colls
 import special.collection.Coll
@@ -10,8 +11,8 @@ import supertagged.@@
 import java.lang
 
 case class Proof(bytes: Array[Byte]){
-  lazy val ergoType: ErgoType[Byte] = ErgoType.byteType()
-  def ergoValue: ErgoValue[Coll[Byte]] = ErgoValue.of(bytes)
+  lazy val ergoType: ErgoType[java.lang.Byte] = ErgoType.byteType()
+  def ergoValue: ErgoValue[Coll[java.lang.Byte]] = ErgoValue.of(bytes)
 
   def toADProof: Array[Byte] @@ authds.SerializedAdProof.Tag = authds.SerializedAdProof @@ bytes
 

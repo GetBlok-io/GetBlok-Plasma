@@ -1,14 +1,14 @@
+import sbt.url
 import xerial.sbt.Sonatype.GitHubHosting
 
 name := "getblok_plasma"
 organization := "io.github.getblok-io"
-version := "0.0.2"
+version := "0.0.3"
 //idePackagePrefix := Some("io.getblok.getblok_plasma")
 scalaVersion := "2.12.10"
-ThisBuild / version      := "0.0.2"
+ThisBuild / version      := "0.0.3"
 libraryDependencies ++= Seq(
-  "org.ergoplatform" %% "ergo-appkit" % "4.0.8",
-  "org.postgresql" % "postgresql" % "42.3.3",
+  "org.ergoplatform" %% "ergo-appkit" % "4.0.10",
   "org.scalatest" %% "scalatest" % "3.2.11" % "test",
   "io.swaydb" %% "swaydb" % "0.16.2",
   "io.swaydb" %% "boopickle" % "0.16.2",

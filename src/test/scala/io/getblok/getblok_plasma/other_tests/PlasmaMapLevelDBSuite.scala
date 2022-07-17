@@ -42,63 +42,63 @@ class PlasmaMapLevelDBSuite extends AnyFunSuite {
     println(s"Tree height: ${localMap.prover.height}")
   }
 
-  test("Convert to PlasmaMap"){
-    val map = localMap.toPlasmaMap
-    val manifest = map.getManifest(255)
-    println(s"Digest: ${manifest.digestString}")
-    val manString = manifest.toHexStrings
-    println(s"Manifest: ${manString._1}")
+//  test("Convert to PlasmaMap"){
+//    val map = localMap.toPlasmaMap
+//    val manifest = map.getManifest(255)
+//    println(s"Digest: ${manifest.digestString}")
+//    val manString = manifest.toHexStrings
+//    println(s"Manifest: ${manString._1}")
+//
+//    for(s <- manString._2) println(s"SubTree: ${s}")
+//
+//    println(s"Num subtrees: ${manString._2.length}")
+//  }
 
-    for(s <- manString._2) println(s"SubTree: ${s}")
-
-    println(s"Num subtrees: ${manString._2.length}")
+  test("lookup id 1") {
+        val result = localMap.lookUp(mockData.head._1)
+        println(s"Result: ${result}")
   }
 
-//  test("lookup id 1") {
-//        val result = plasmaMap.lookUp(mockData.head._1)
-//        println(s"Result: ${result}")
-//  }
-//
-//  test("Place in box") {
-//        val result = plasmaMap.lookUp(mockData.head._1)
-//        println(Longs.toByteArray(mockData.head._1).length)
-//        println(s"Result: ${result}")
-//        val box = buildAVLBox(Parameters.OneErg, Longs.toByteArray(mockData.head._1), plasmaMap.ergoValue, result.proof.ergoValue)
-//        println(box.toJson(true))
-//  }
+  test("Place in box") {
+        val result = localMap.lookUp(mockData.head._1)
+        println(Longs.toByteArray(mockData.head._1).length)
+        println(s"Result: ${result}")
+        val box = buildAVLBox(Parameters.OneErg, Longs.toByteArray(mockData.head._1), localMap.ergoValue, result.proof.ergoValue)
+        println(box.toJson(true))
+  }
 
-//    test("Spend box"){
-//      val randomLongs = for(i <- 1L to 80L) yield i -> TestLong(i.toInt + 1)
-//      println(randomLongs + " - random int")
-//      val oldErgoValue = localMap.ergoValue
-//      val result = localMap.update(randomLongs:_*)
-//      println(s"Result: ${result}")
-//      val boxes = buildGetManyAVLBoxes(Parameters.OneErg, randomLongs.map(l => ByteConversion.convertsLong.convertToBytes(l._1) -> convertsTestInt.convertToBytes(l._2)), oldErgoValue, result.proof.ergoValue)
-//      println(boxes.head.toJson(true))
-//      ergoClient.execute{
-//        ctx =>
-//          val txB = ctx.newTxBuilder()
-//          val outB = txB.outBoxBuilder()
-//          val out = outB
-//            .value(Parameters.OneErg - Parameters.MinFee)
-//            .contract(new ErgoTreeContract(boxes.head.getErgoTree, ctx.getNetworkType))
-//            .build()
-//
-//          val uTx = txB
-//            .boxesToSpend(boxes.asJava)
-//            .outputs(out)
-//            .fee(Parameters.MinFee)
-//            .sendChangeTo(Address.fromErgoTree(boxes.head.getErgoTree, ctx.getNetworkType).getErgoAddress)
-//            .build()
-//
-//          val sTx = dummyProver.sign(uTx)
-//          println(s"Tx Cost: ${sTx.getCost}")
-//          println(s"Tx json: ${sTx.toJson(true)}")
-//          println(s"AVL box size: ${boxes.head.getBytes.length}")
-//          println(s"Proof box size: ${boxes(1).getBytes.length}")
-//          println(randomLongs + " - random int")
-//      }
-//    }
+    test("Spend box"){
+      val randomLongs = for(i <- 1L to 80L) yield i -> TestLong(i.toInt + 1)
+      println(randomLongs + " - random int")
+      val oldErgoValue = localMap.ergoValue
+      val result = localMap.update(randomLongs:_*)
+      println(s"Result: ${result}")
+      val boxes = buildGetManyAVLBoxes(Parameters.OneErg, randomLongs.map(l => ByteConversion.convertsLong.convertToBytes(l._1) -> convertsTestInt.convertToBytes(l._2)), oldErgoValue, result.proof.ergoValue)
+      println(boxes.head.toJson(true))
+      ergoClient.execute{
+        ctx =>
+          val txB = ctx.newTxBuilder()
+          val outB = txB.outBoxBuilder()
+          val out = outB
+            .value(Parameters.OneErg - Parameters.MinFee)
+            .contract(new ErgoTreeContract(boxes.head.getErgoTree, ctx.getNetworkType))
+            .build()
+
+          val uTx = txB
+            .boxesToSpend(boxes.asJava)
+            .outputs(out)
+            .fee(Parameters.MinFee)
+            .sendChangeTo(Address.fromErgoTree(boxes.head.getErgoTree, ctx.getNetworkType).getErgoAddress)
+            .build()
+
+          val sTx = dummyProver.sign(uTx)
+          println(s"Tx Cost: ${sTx.getCost}")
+          println(s"Tx json: ${sTx.toJson(true)}")
+          println(s"AVL box size: ${boxes.head.getBytes.length}")
+          println(s"Proof box size: ${boxes(1).getBytes.length}")
+          println(randomLongs + " - random int")
+      }
+    }
 }
 
 object PlasmaMapLevelDBSuite {
