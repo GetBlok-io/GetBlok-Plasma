@@ -52,7 +52,8 @@ package object other_tests {
 
     ergoClient.execute{
       ctx =>
-        val ergoValue = ErgoValue.of(Colls.fromArray(keys.toArray.map(k => Colls.fromArray(k._1).map(Iso.jbyteToByte.from) -> Colls.fromArray(k._2).map(Iso.jbyteToByte.from))),
+        val ergoValue: ErgoValue[Coll[(Coll[java.lang.Byte], Coll[java.lang.Byte])]] =
+          ErgoValue.of(Colls.fromArray(keys.toArray.map(k => Colls.fromArray(k._1).map(Iso.jbyteToByte.from) -> Colls.fromArray(k._2).map(Iso.jbyteToByte.from))),
           ErgoType.pairType(ErgoType.collType(ErgoType.byteType()), ErgoType.collType(ErgoType.byteType())))
         val avlBox = ctx.newTxBuilder().outBoxBuilder()
           .value(value / 2)

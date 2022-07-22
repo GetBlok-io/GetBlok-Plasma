@@ -3,10 +3,10 @@ import xerial.sbt.Sonatype.GitHubHosting
 
 name := "getblok_plasma"
 organization := "io.github.getblok-io"
-version := "0.0.3"
+version := "0.0.4"
 //idePackagePrefix := Some("io.getblok.getblok_plasma")
 scalaVersion := "2.12.10"
-ThisBuild / version      := "0.0.3"
+ThisBuild / version      := "0.0.4"
 libraryDependencies ++= Seq(
   "org.ergoplatform" %% "ergo-appkit" % "4.0.10",
   "org.scalatest" %% "scalatest" % "3.2.11" % "test",
@@ -19,6 +19,7 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-jdk14" % "1.7.32",
 )
 libraryDependencies ++= Seq(
+  "javax.xml.bind" % "jaxb-api" % "2.4.0-b180830.0359",
   "org.ethereum" % "leveldbjni-all"     % "1.18.3",
   "org.iq80.leveldb" % "leveldb" % "0.12",
 )
