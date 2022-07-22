@@ -31,6 +31,17 @@ resolvers ++= Seq(
   "Bintray" at "https://jcenter.bintray.com/"
 )
 
+assemblyMergeStrategy in assembly := {
+  case "logback.xml" => MergeStrategy.first
+  case x if x.endsWith("module-info.class") => MergeStrategy.discard
+  case PathList("org", "bouncycastle", xs @ _*) => MergeStrategy.first
+  case PathList("org", "iq80", "leveldb", xs @ _*) => MergeStrategy.first
+  case PathList("org", "bouncycastle", xs @ _*) => MergeStrategy.first
+  case PathList("javax", "activation", xs @ _*) => MergeStrategy.last
+  case PathList("javax", "annotation", xs @ _*) => MergeStrategy.last
+  case other => (assemblyMergeStrategy in assembly).value(other)
+}
+
 
 
 assemblyJarName in assembly := s"plasma-${version.value}.jar"

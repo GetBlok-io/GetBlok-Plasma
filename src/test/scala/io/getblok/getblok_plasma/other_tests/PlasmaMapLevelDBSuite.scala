@@ -2,7 +2,7 @@ package io.getblok.getblok_plasma.other_tests
 
 import com.google.common.primitives.{Ints, Longs}
 import io.getblok.getblok_plasma.{ByteConversion, PlasmaParameters}
-import io.getblok.getblok_plasma.collections.{LocalPlasmaMap, ProvenResult}
+import io.getblok.getblok_plasma.collections.{LocalPlasmaMap, PlasmaMap, ProvenResult}
 import io.getblok.getblok_plasma.other_tests.PlasmaMapLevelDBSuite.{TestLong, convertsTestInt, mockData}
 import org.bouncycastle.util.encoders.Hex
 import org.ergoplatform.appkit.impl.ErgoTreeContract
@@ -20,26 +20,25 @@ import scala.jdk.CollectionConverters.seqAsJavaListConverter
 class PlasmaMapLevelDBSuite extends AnyFunSuite {
   var swayStore: LDBVersionedStore = _
   var avlStorage: VersionedLDBAVLStorage[Digest32] = _
-  var localMap: LocalPlasmaMap[Long, TestLong] = _
+  var map: PlasmaMap[Long, TestLong] = _
   var lookUpBox: InputBox = _
 
 
 
   test("Create PlasmaMap") {
-    swayStore = new LDBVersionedStore(new File("./level"), 10)
-    avlStorage = new VersionedLDBAVLStorage[Digest32](swayStore, PlasmaParameters.default.toNodeParams)(Blake2b256)
-    localMap = new LocalPlasmaMap[Long, TestLong](avlStorage, AvlTreeFlags.AllOperationsAllowed, PlasmaParameters.default)
-    println(s"Digest ${Hex.toHexString(localMap.digest)}")
+
+    map = new PlasmaMap[Long, TestLong]( AvlTreeFlags.AllOperationsAllowed, PlasmaParameters.default)
+    println(s"Digest ${Hex.toHexString(map.digest)}")
   }
 
   test("Add values") {
-    val result = localMap.insert(mockData: _*)
+    val result = map.insert(mockData: _*)
 
     println(s"Result: ${result}")
    // println(s"Proof: ${result.proof}")
-    println(s"Digest: ${Hex.toHexString(localMap.digest)}")
+    println(s"Digest: ${Hex.toHexString(map.digest)}")
    // println(s"Manifest: ${localMap.toPlasmaMap.makeManifest.toHexString}")
-    println(s"Tree height: ${localMap.prover.height}")
+    println(s"Tree height: ${map.prover.rootNodeHeight}")
   }
 
 //  test("Convert to PlasmaMap"){
@@ -55,23 +54,23 @@ class PlasmaMapLevelDBSuite extends AnyFunSuite {
 //  }
 
   test("lookup id 1") {
-        val result = localMap.lookUp(mockData.head._1)
+        val result = map.lookUp(mockData.head._1)
         println(s"Result: ${result}")
   }
 
   test("Place in box") {
-        val result = localMap.lookUp(mockData.head._1)
+        val result = map.lookUp(mockData.head._1)
         println(Longs.toByteArray(mockData.head._1).length)
         println(s"Result: ${result}")
-        val box = buildAVLBox(Parameters.OneErg, Longs.toByteArray(mockData.head._1), localMap.ergoValue, result.proof.ergoValue)
+        val box = buildAVLBox(Parameters.OneErg, Longs.toByteArray(mockData.head._1), map.ergoValue, result.proof.ergoValue)
         println(box.toJson(true))
   }
 
     test("Spend box"){
       val randomLongs = for(i <- 1L to 80L) yield i -> TestLong(i.toInt + 1)
       println(randomLongs + " - random int")
-      val oldErgoValue = localMap.ergoValue
-      val result = localMap.update(randomLongs:_*)
+      val oldErgoValue = map.ergoValue
+      val result = map.update(randomLongs:_*)
       println(s"Result: ${result}")
       val boxes = buildGetManyAVLBoxes(Parameters.OneErg, randomLongs.map(l => ByteConversion.convertsLong.convertToBytes(l._1) -> convertsTestInt.convertToBytes(l._2)), oldErgoValue, result.proof.ergoValue)
       println(boxes.head.toJson(true))
@@ -97,6 +96,7 @@ class PlasmaMapLevelDBSuite extends AnyFunSuite {
           println(s"AVL box size: ${boxes.head.getBytes.length}")
           println(s"Proof box size: ${boxes(1).getBytes.length}")
           println(randomLongs + " - random int")
+          println("Test finished successfully!")
       }
     }
 }
@@ -111,7 +111,7 @@ object PlasmaMapLevelDBSuite {
     override def convertFromBytes(bytes: Array[Byte]): TestLong = TestLong(Longs.fromByteArray(bytes))
   }
 
-  val mockData: Seq[(Long, TestLong)] = for(i <- 1L to 100000) yield i -> TestLong(i)
+  val mockData: Seq[(Long, TestLong)] = for(i <- 1L to 1000) yield i -> TestLong(i)
 
   def ergoId(str: String):    ErgoId = ErgoId.create(str)
   def ergoTree(str: String):  Values.ErgoTree = Address.create(str).getErgoAddress.script
